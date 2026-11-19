@@ -1,5 +1,5 @@
 Package: wifibridge
-Version: 1.0.0
+Version: 1.0.4
 Section: net
 Priority: optional
 Architecture: amd64

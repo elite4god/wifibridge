@@ -40,7 +40,7 @@
                 <div class="d-flex align-items-center gap-3">
                     <span class="badge {{if eq .LiveConfig.WAN.Mode "wireless"}}bg-info{{else}}bg-success{{end}} p-2">
                         <i class="bi {{if eq .LiveConfig.WAN.Mode "wireless"}}bi-wifi{{else}}bi-ethernet{{end}} me-1"></i>
-                        WAN: {{if eq .LiveConfig.WAN.Mode "wireless"}}Wi-Fi (wlan0){{else}}Ethernet (eth0){{end}}
+                        WAN: {{if eq .LiveConfig.WAN.Mode "wireless"}}Wi-Fi{{else}}Ethernet{{end}} ({{.LiveConfig.WAN.Interface}})
                     </span>
                     <form action="/logout" method="POST" class="m-0">
                         <button type="submit" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Logout</button>
@@ -97,18 +97,46 @@
 
     <!-- Diff Modal -->
     <div class="modal fade" id="diffModal" tabindex="-1" aria-labelledby="diffModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="diffModalLabel"><i class="bi bi-file-diff me-2"></i> Review Staged Differences</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-0">
                     {{if .StagedDiffs}}
-<pre class="bg-dark text-success rounded p-3 mb-0"
-     style="font-size:0.8rem; max-height:420px; overflow-y:auto;"><code>{{toJSON .StagedDiffs}}</code></pre>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0" style="font-size:0.875rem;">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width:18%">Section</th>
+                                    <th style="width:22%">Field</th>
+                                    <th style="width:30%" class="text-center bg-danger-subtle text-dark border-end">
+                                        <i class="bi bi-broadcast-pin text-danger me-1"></i> Current Active Config
+                                    </th>
+                                    <th style="width:30%" class="text-center bg-success-subtle text-dark">
+                                        <i class="bi bi-arrow-right-circle-fill text-success me-1"></i> Staged Config
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{range .StagedDiffs}}
+                                <tr>
+                                    <td class="fw-bold text-muted small align-middle">{{.Section}}</td>
+                                    <td class="fw-semibold align-middle">{{.Field}}</td>
+                                    <td class="text-center align-middle bg-light border-end">
+                                        <code class="px-2 py-1 rounded border text-danger-emphasis bg-white d-inline-block">{{.OldVal}}</code>
+                                    </td>
+                                    <td class="text-center align-middle bg-light">
+                                        <code class="px-2 py-1 rounded border text-success-emphasis bg-white d-inline-block">{{.NewVal}}</code>
+                                    </td>
+                                </tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
                     {{else}}
-                    <p class="text-muted m-0">No pending staged changes detected.</p>
+                    <p class="text-muted m-3">No pending staged changes detected.</p>
                     {{end}}
                 </div>
                 <div class="modal-footer">

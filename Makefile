@@ -1,4 +1,4 @@
-VERSION ?= 1.0.0
+VERSION ?= 1.0.4
 PKG_NAME = wifibridge
 BIN_DIR = bin
 DIST_DIR = dist

@@ -485,15 +485,38 @@ func GenerateLANNetwork(cfg *config.LANConfig) (string, error) {
 	return buf.String(), nil
 }
 
+// ListNetworkInterfaces returns all non-loopback network interface names present on the system.
+func ListNetworkInterfaces() []string {
+	ifaces, err := net.Interfaces()
+	var names []string
+	if err == nil {
+		for _, ifc := range ifaces {
+			if ifc.Flags&net.FlagLoopback != 0 {
+				continue
+			}
+			names = append(names, ifc.Name)
+		}
+	}
+	if len(names) == 0 {
+		names = []string{"eth0", "wlan0", "wlan1"}
+	}
+	sort.Strings(names)
+	return names
+}
+
 // GenerateWANNetwork generates content for 20-wan.network.
 func GenerateWANNetwork(cfg *config.WANConfig) (string, error) {
 	if cfg == nil {
 		return "", errors.New("nil WAN config")
 	}
 
-	iface := "eth0"
-	if cfg.Mode == "wireless" {
-		iface = "wlan0"
+	iface := cfg.Interface
+	if iface == "" {
+		if cfg.Mode == "wireless" {
+			iface = "wlan0"
+		} else {
+			iface = "eth0"
+		}
 	}
 
 	data := WANNetworkData{Interface: iface}

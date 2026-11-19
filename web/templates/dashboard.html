@@ -45,7 +45,7 @@
     <div class="col-md-4">
         <div class="card card-stat bg-white h-100 p-3">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="text-muted small fw-bold text-uppercase">Downstream AP (wlan1 &rarr; br0)</span>
+                <span class="text-muted small fw-bold text-uppercase">Downstream AP ({{.LiveConfig.AP.Interface}} &rarr; {{.LiveConfig.LAN.Interface}})</span>
                 <span class="badge bg-primary"><i class="bi bi-broadcast me-1"></i> Bridge Member</span>
             </div>
             <h4 class="mb-1 text-dark fw-bold">{{.LiveConfig.AP.SSID}}</h4>
@@ -60,7 +60,7 @@
     <div class="col-md-4">
         <div class="card card-stat bg-white h-100 p-3">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="text-muted small fw-bold text-uppercase">Bridge LAN (br0)</span>
+                <span class="text-muted small fw-bold text-uppercase">Bridge LAN ({{.LiveConfig.LAN.Interface}})</span>
                 <span class="badge bg-info text-dark"><i class="bi bi-diagram-3 me-1"></i> DNS: {{.LiveConfig.LAN.GatewayIP}}</span>
             </div>
             <h4 class="mb-1 text-dark fw-bold">{{.LiveConfig.LAN.GatewayIP}}</h4>
@@ -68,7 +68,7 @@
                 Subnet: <strong>{{.LiveConfig.LAN.Subnet}}</strong> &bull; Leases: <strong>{{len .Leases}} active</strong>
             </div>
             <div class="border-top pt-2 mt-auto small text-muted">
-                Bridge Members: <strong class="text-dark">wlan1{{if ne .LiveConfig.WAN.Mode "ethernet"}}, eth0{{end}}</strong>
+                Bridge Members: <strong class="text-dark">{{.LiveConfig.AP.Interface}}{{if ne .LiveConfig.WAN.Mode "ethernet"}}, {{.LiveConfig.WAN.Interface}}{{end}}</strong>
             </div>
             <a href="/lan" class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-hdd-network me-1"></i> LAN Settings</a>
         </div>

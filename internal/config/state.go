@@ -21,13 +21,14 @@ type Config struct {
 
 // WANConfig represents upstream WAN settings.
 type WANConfig struct {
-	Mode        string `json:"mode"`                  // "ethernet" (eth0) or "wireless" (wlan0)
-	SSID        string `json:"ssid,omitempty"`        // Wi-Fi WAN SSID
-	Security    string `json:"security,omitempty"`    // "open", "psk", "8021x"
-	Password    string `json:"password,omitempty"`    // Masked in UI
+	Mode        string `json:"mode"`                   // "ethernet" or "wireless"
+	Interface   string `json:"interface,omitempty"`    // e.g. "eth0", "enp3s0", "wlan0"
+	SSID        string `json:"ssid,omitempty"`         // Wi-Fi WAN SSID
+	Security    string `json:"security,omitempty"`     // "open", "psk", "8021x"
+	Password    string `json:"password,omitempty"`     // Masked in UI
 	EAPIdentity string `json:"eap_identity,omitempty"`
 	EAPPassword string `json:"eap_password,omitempty"`
-	EAPMethod   string `json:"eap_method,omitempty"`  // "PEAP", "TTLS", "TLS"
+	EAPMethod   string `json:"eap_method,omitempty"`   // "PEAP", "TTLS", "TLS"
 }
 
 // LANConfig represents downstream LAN network and DHCP settings.
@@ -98,7 +99,8 @@ type Manager struct {
 func DefaultConfig() *Config {
 	return &Config{
 		WAN: WANConfig{
-			Mode: "ethernet",
+			Mode:      "ethernet",
+			Interface: "eth0",
 		},
 		LAN: LANConfig{
 			Interface:    "br0",
@@ -135,6 +137,13 @@ func DefaultConfig() *Config {
 func normalizeConfig(cfg *Config) {
 	if cfg == nil {
 		return
+	}
+	if cfg.WAN.Interface == "" {
+		if cfg.WAN.Mode == "wireless" {
+			cfg.WAN.Interface = "wlan0"
+		} else {
+			cfg.WAN.Interface = "eth0"
+		}
 	}
 	if cfg.LAN.Interface == "" || cfg.LAN.Interface == "wlan1" {
 		cfg.LAN.Interface = "br0"
@@ -289,6 +298,9 @@ func (m *Manager) GetDiff() []ConfigChange {
 	if m.live.WAN.Mode != m.staged.WAN.Mode {
 		diffs = append(diffs, ConfigChange{"WAN", "Mode", m.live.WAN.Mode, m.staged.WAN.Mode})
 	}
+	if m.live.WAN.Interface != m.staged.WAN.Interface {
+		diffs = append(diffs, ConfigChange{"WAN", "Interface", m.live.WAN.Interface, m.staged.WAN.Interface})
+	}
 	if m.live.WAN.SSID != m.staged.WAN.SSID {
 		diffs = append(diffs, ConfigChange{"WAN", "SSID", m.live.WAN.SSID, m.staged.WAN.SSID})
 	}
@@ -321,6 +333,9 @@ func (m *Manager) GetDiff() []ConfigChange {
 	}
 
 	// AP
+	if m.live.AP.Interface != m.staged.AP.Interface {
+		diffs = append(diffs, ConfigChange{"Access Point", "Interface", m.live.AP.Interface, m.staged.AP.Interface})
+	}
 	if m.live.AP.Bridge != m.staged.AP.Bridge {
 		diffs = append(diffs, ConfigChange{"Access Point", "Bridge", m.live.AP.Bridge, m.staged.AP.Bridge})
 	}

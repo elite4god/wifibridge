@@ -74,10 +74,38 @@ func TestConfigManagerStaging(t *testing.T) {
 	// Make another change and commit
 	err = mgr.UpdateStaged(func(cfg *Config) {
 		cfg.WAN.Mode = "wireless"
+		cfg.WAN.Interface = "wlan2"
 		cfg.WAN.SSID = "HotelWiFi"
+		cfg.AP.Interface = "wlan3"
+		cfg.LAN.Interface = "br1"
 	})
 	if err != nil {
 		t.Fatalf("failed to update staged: %v", err)
+	}
+
+	diffs = mgr.GetDiff()
+	hasWANInterfaceDiff := false
+	hasAPInterfaceDiff := false
+	hasLANInterfaceDiff := false
+	for _, d := range diffs {
+		if d.Section == "WAN" && d.Field == "Interface" && d.OldVal == "eth0" && d.NewVal == "wlan2" {
+			hasWANInterfaceDiff = true
+		}
+		if d.Section == "Access Point" && d.Field == "Interface" && d.OldVal == "wlan1" && d.NewVal == "wlan3" {
+			hasAPInterfaceDiff = true
+		}
+		if d.Section == "LAN" && d.Field == "Interface" && d.OldVal == "br0" && d.NewVal == "br1" {
+			hasLANInterfaceDiff = true
+		}
+	}
+	if !hasWANInterfaceDiff {
+		t.Errorf("expected WAN Interface diff from eth0 to wlan2")
+	}
+	if !hasAPInterfaceDiff {
+		t.Errorf("expected AP Interface diff from wlan1 to wlan3")
+	}
+	if !hasLANInterfaceDiff {
+		t.Errorf("expected LAN Interface diff from br0 to br1")
 	}
 
 	newLive, backup, err := mgr.CommitStaged()
@@ -86,6 +114,15 @@ func TestConfigManagerStaging(t *testing.T) {
 	}
 	if newLive.WAN.Mode != "wireless" {
 		t.Errorf("expected new live WAN mode to be wireless, got %s", newLive.WAN.Mode)
+	}
+	if newLive.WAN.Interface != "wlan2" {
+		t.Errorf("expected new live WAN interface to be wlan2, got %s", newLive.WAN.Interface)
+	}
+	if newLive.AP.Interface != "wlan3" {
+		t.Errorf("expected new live AP interface to be wlan3, got %s", newLive.AP.Interface)
+	}
+	if newLive.LAN.Interface != "br1" {
+		t.Errorf("expected new live LAN interface to be br1, got %s", newLive.LAN.Interface)
 	}
 	if backup.WAN.Mode != "ethernet" {
 		t.Errorf("expected backup WAN mode to be ethernet, got %s", backup.WAN.Mode)

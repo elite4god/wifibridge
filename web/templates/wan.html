@@ -12,11 +12,21 @@
                     <p class="text-muted small mb-0">Select and stage the primary Internet gateway interface.</p>
                 </div>
                 <span class="badge {{if eq .StagedConfig.WAN.Mode "wireless"}}bg-info{{else}}bg-success{{end}} p-2">
-                    Staged: {{if eq .StagedConfig.WAN.Mode "wireless"}}Wi-Fi (wlan0){{else}}Ethernet (eth0){{end}}
+                    Staged: {{if eq .StagedConfig.WAN.Mode "wireless"}}Wi-Fi{{else}}Ethernet{{end}} ({{.StagedConfig.WAN.Interface}})
                 </span>
             </div>
 
             <form action="/wan" method="POST">
+                <div class="mb-4">
+                    <label for="wan_interface" class="form-label fw-bold">WAN Physical Interface</label>
+                    <select class="form-select" id="wan_interface" name="wan_interface">
+                        {{range .NetworkInterfaces}}
+                        <option value="{{.}}" {{if eq . $.StagedConfig.WAN.Interface}}selected{{end}}>{{.}}</option>
+                        {{end}}
+                    </select>
+                    <div class="form-text">Select the physical network interface to use as the upstream WAN connection.</div>
+                </div>
+
                 <div class="mb-4">
                     <label class="form-label fw-bold">Uplink Interface Mode</label>
                     <div class="row g-3">
@@ -25,7 +35,7 @@
                                 <input class="form-check-input" type="radio" name="mode" id="modeEth" value="ethernet"
                                        {{if eq .StagedConfig.WAN.Mode "ethernet"}}checked{{end}} onchange="toggleWifiFields(false)">
                                 <label class="form-check-label w-100" for="modeEth">
-                                    <strong class="d-block"><i class="bi bi-ethernet me-1 text-primary"></i> Ethernet (eth0)</strong>
+                                    <strong class="d-block"><i class="bi bi-ethernet me-1 text-primary"></i> Ethernet</strong>
                                     <span class="text-muted small">Wired Ethernet cable connection. Automatic DHCP client.</span>
                                 </label>
                             </div>
@@ -35,7 +45,7 @@
                                 <input class="form-check-input" type="radio" name="mode" id="modeWifi" value="wireless"
                                        {{if eq .StagedConfig.WAN.Mode "wireless"}}checked{{end}} onchange="toggleWifiFields(true)">
                                 <label class="form-check-label w-100" for="modeWifi">
-                                    <strong class="d-block"><i class="bi bi-wifi me-1 text-primary"></i> Wireless Station (wlan0)</strong>
+                                    <strong class="d-block"><i class="bi bi-wifi me-1 text-primary"></i> Wireless Station</strong>
                                     <span class="text-muted small">Connects upstream via built-in Wi-Fi client (iwd).</span>
                                 </label>
                             </div>
@@ -140,5 +150,16 @@ function selectNetwork(ssid, sec) {
     }
     updateSecurityFields();
 }
+(function() {
+    var sel = document.getElementById('wan_interface');
+    var val = "{{.StagedConfig.WAN.Interface}}";
+    if (sel && val && !Array.from(sel.options).some(function(o) { return o.value === val; })) {
+        var opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val + " (Configured)";
+        opt.selected = true;
+        sel.prepend(opt);
+    }
+})();
 </script>
 {{end}}

@@ -8,13 +8,23 @@
         <div class="card card-stat bg-white p-4">
             <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
                 <div>
-                    <h4 class="fw-bold mb-1"><i class="bi bi-wifi me-2 text-primary"></i>Downstream Access Point (wlan1)</h4>
-                    <p class="text-muted small mb-0">Configure the persistent management Wi-Fi hotspot hosted by hostapd (bridged to <code>br0</code>).</p>
+                    <h4 class="fw-bold mb-1"><i class="bi bi-wifi me-2 text-primary"></i>Downstream Access Point</h4>
+                    <p class="text-muted small mb-0">Configure the persistent management Wi-Fi hotspot hosted by hostapd (bridged to <code>{{.StagedConfig.LAN.Interface}}</code>).</p>
                 </div>
-                <span class="badge bg-primary p-2">wlan1 &rarr; br0</span>
+                <span class="badge bg-primary p-2">{{.StagedConfig.AP.Interface}} &rarr; {{.StagedConfig.LAN.Interface}}</span>
             </div>
 
             <form action="/ap" method="POST">
+                <div class="mb-3">
+                    <label for="ap_interface" class="form-label small fw-bold">AP Physical Interface</label>
+                    <select class="form-select" id="ap_interface" name="ap_interface">
+                        {{range .NetworkInterfaces}}
+                        <option value="{{.}}" {{if eq . $.StagedConfig.AP.Interface}}selected{{end}}>{{.}}</option>
+                        {{end}}
+                    </select>
+                    <div class="form-text">Select the wireless interface hosted by hostapd for the Access Point.</div>
+                </div>
+
                 <div class="mb-3">
                     <label for="ssid" class="form-label small fw-bold">Network Name (SSID)</label>
                     <input type="text" class="form-control" id="ssid" name="ssid" value="{{.StagedConfig.AP.SSID}}" maxlength="32" required>
@@ -73,5 +83,16 @@ function toggleAPPassphrase() {
     var sec = document.getElementById('security').value;
     document.getElementById('passphraseContainer').style.display = (sec === 'wpa2-psk') ? 'block' : 'none';
 }
+(function() {
+    var sel = document.getElementById('ap_interface');
+    var val = "{{.StagedConfig.AP.Interface}}";
+    if (sel && val && !Array.from(sel.options).some(function(o) { return o.value === val; })) {
+        var opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val + " (Configured)";
+        opt.selected = true;
+        sel.prepend(opt);
+    }
+})();
 </script>
 {{end}}

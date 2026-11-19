@@ -97,6 +97,8 @@ func (s *Server) handleWANPost(w http.ResponseWriter, r *http.Request) {
 		mode = "ethernet"
 	}
 
+	wanIface := config.SanitizeInput(r.FormValue("wan_interface"))
+
 	ssid := config.SanitizeInput(r.FormValue("ssid"))
 	security := config.SanitizeInput(r.FormValue("security"))
 	password := config.SanitizeInput(r.FormValue("password"))
@@ -106,6 +108,9 @@ func (s *Server) handleWANPost(w http.ResponseWriter, r *http.Request) {
 
 	_ = s.cfgMgr.UpdateStaged(func(cfg *config.Config) {
 		cfg.WAN.Mode = mode
+		if wanIface != "" {
+			cfg.WAN.Interface = wanIface
+		}
 		if mode == "wireless" {
 			cfg.WAN.SSID = ssid
 			cfg.WAN.Security = security
@@ -141,6 +146,7 @@ func (s *Server) handleAPGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAPPost(w http.ResponseWriter, r *http.Request) {
+	apIface := config.SanitizeInput(r.FormValue("ap_interface"))
 	ssid := config.SanitizeInput(r.FormValue("ssid"))
 	security := config.SanitizeInput(r.FormValue("security"))
 	passphrase := config.SanitizeInput(r.FormValue("passphrase"))
@@ -148,6 +154,9 @@ func (s *Server) handleAPPost(w http.ResponseWriter, r *http.Request) {
 	channel, _ := strconv.Atoi(r.FormValue("channel"))
 
 	_ = s.cfgMgr.UpdateStaged(func(cfg *config.Config) {
+		if apIface != "" {
+			cfg.AP.Interface = apIface
+		}
 		if ssid != "" {
 			cfg.AP.SSID = ssid
 		}
@@ -177,6 +186,7 @@ func (s *Server) handleLANGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLANPost(w http.ResponseWriter, r *http.Request) {
+	lanIface := config.SanitizeInput(r.FormValue("lan_interface"))
 	gatewayIP := config.SanitizeInput(r.FormValue("gateway_ip"))
 	subnet := config.SanitizeInput(r.FormValue("subnet"))
 	offset, _ := strconv.Atoi(r.FormValue("pool_offset"))
@@ -184,6 +194,9 @@ func (s *Server) handleLANPost(w http.ResponseWriter, r *http.Request) {
 	leaseTime, _ := strconv.Atoi(r.FormValue("lease_time"))
 
 	_ = s.cfgMgr.UpdateStaged(func(cfg *config.Config) {
+		if lanIface != "" {
+			cfg.LAN.Interface = lanIface
+		}
 		if gatewayIP != "" {
 			cfg.LAN.GatewayIP = gatewayIP
 		}

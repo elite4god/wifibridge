@@ -117,6 +117,31 @@ func TestSystemdConfigs(t *testing.T) {
 		t.Errorf("expected Name=wlan0, got:\n%s", wanNetWifi)
 	}
 
+	// Test custom interfaces
+	wanCustomEth := &config.WANConfig{Mode: "ethernet", Interface: "enp3s0"}
+	wanNetCustomEth, err := GenerateWANNetwork(wanCustomEth)
+	if err != nil {
+		t.Fatalf("failed to generate WAN custom eth: %v", err)
+	}
+	if !strings.Contains(wanNetCustomEth, "Name=enp3s0") {
+		t.Errorf("expected Name=enp3s0, got:\n%s", wanNetCustomEth)
+	}
+
+	wanCustomWifi := &config.WANConfig{Mode: "wireless", Interface: "wlan2"}
+	wanNetCustomWifi, err := GenerateWANNetwork(wanCustomWifi)
+	if err != nil {
+		t.Fatalf("failed to generate WAN custom wifi: %v", err)
+	}
+	if !strings.Contains(wanNetCustomWifi, "Name=wlan2") {
+		t.Errorf("expected Name=wlan2, got:\n%s", wanNetCustomWifi)
+	}
+
+	// Test ListNetworkInterfaces
+	ifaces := ListNetworkInterfaces()
+	if len(ifaces) == 0 {
+		t.Errorf("expected ListNetworkInterfaces to return at least 1 interface candidate")
+	}
+
 	resConf, err := GenerateResolvedConf("10.99.0.1")
 	if err != nil {
 		t.Fatalf("failed to generate resolved conf: %v", err)

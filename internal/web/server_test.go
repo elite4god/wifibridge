@@ -274,3 +274,143 @@ func TestStaticAssetsAndFontResolution(t *testing.T) {
 		t.Errorf("expected 200 OK for /static/css/fonts/bootstrap-icons.woff2, got %d", wAliased.Code)
 	}
 }
+
+func TestInterfaceSelectionAndSideBySideDiff(t *testing.T) {
+	srv, stateDir, sysRoot := setupTestServer(t)
+	defer os.RemoveAll(stateDir)
+	defer os.RemoveAll(sysRoot)
+
+	_ = srv.authMgr.CreateAdmin("admin", "password123")
+	wAuth := httptest.NewRecorder()
+	srv.authMgr.CreateSession(wAuth)
+	sessionCookie := wAuth.Result().Cookies()[0]
+
+	// 1. Verify GET /wan includes WAN Physical Interface dropdown
+	reqWANGet := httptest.NewRequest("GET", "/wan", nil)
+	reqWANGet.AddCookie(sessionCookie)
+	wWANGet := httptest.NewRecorder()
+	srv.ServeHTTP(wWANGet, reqWANGet)
+	if wWANGet.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /wan, got %d", wWANGet.Code)
+	}
+	wanBody := wWANGet.Body.String()
+	if !strings.Contains(wanBody, `name="wan_interface"`) {
+		t.Errorf("expected /wan to contain wan_interface select field")
+	}
+
+	// 2. Verify GET /ap includes AP Physical Interface dropdown
+	reqAPGet := httptest.NewRequest("GET", "/ap", nil)
+	reqAPGet.AddCookie(sessionCookie)
+	wAPGet := httptest.NewRecorder()
+	srv.ServeHTTP(wAPGet, reqAPGet)
+	if wAPGet.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /ap, got %d", wAPGet.Code)
+	}
+	apBody := wAPGet.Body.String()
+	if !strings.Contains(apBody, `name="ap_interface"`) {
+		t.Errorf("expected /ap to contain ap_interface select field")
+	}
+
+	// 3. Verify GET /lan includes LAN Bridge Interface field
+	reqLANGet := httptest.NewRequest("GET", "/lan", nil)
+	reqLANGet.AddCookie(sessionCookie)
+	wLANGet := httptest.NewRecorder()
+	srv.ServeHTTP(wLANGet, reqLANGet)
+	if wLANGet.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /lan, got %d", wLANGet.Code)
+	}
+	lanBody := wLANGet.Body.String()
+	if !strings.Contains(lanBody, `name="lan_interface"`) {
+		t.Errorf("expected /lan to contain lan_interface field")
+	}
+
+	// 4. Stage custom WAN interface: "enp3s0"
+	formWAN := url.Values{
+		"mode":          {"ethernet"},
+		"wan_interface": {"enp3s0"},
+	}
+	reqWANPost := httptest.NewRequest("POST", "/wan", strings.NewReader(formWAN.Encode()))
+	reqWANPost.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	reqWANPost.AddCookie(sessionCookie)
+	wWANPost := httptest.NewRecorder()
+	srv.ServeHTTP(wWANPost, reqWANPost)
+	if wWANPost.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect after staging WAN, got %d", wWANPost.Code)
+	}
+
+	// 5. Stage custom AP interface: "wlan2"
+	formAP := url.Values{
+		"ap_interface": {"wlan2"},
+		"ssid":         {"CustomAP"},
+		"security":     {"open"},
+		"band":         {"2.4GHz"},
+		"channel":      {"6"},
+	}
+	reqAPPost := httptest.NewRequest("POST", "/ap", strings.NewReader(formAP.Encode()))
+	reqAPPost.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	reqAPPost.AddCookie(sessionCookie)
+	wAPPost := httptest.NewRecorder()
+	srv.ServeHTTP(wAPPost, reqAPPost)
+	if wAPPost.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect after staging AP, got %d", wAPPost.Code)
+	}
+
+	// 6. Stage custom LAN interface: "br1"
+	formLAN := url.Values{
+		"lan_interface": {"br1"},
+		"gateway_ip":    {"10.99.0.1"},
+		"subnet":        {"10.99.0.0/24"},
+		"pool_offset":   {"100"},
+		"pool_size":     {"150"},
+		"lease_time":    {"86400"},
+	}
+	reqLANPost := httptest.NewRequest("POST", "/lan", strings.NewReader(formLAN.Encode()))
+	reqLANPost.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	reqLANPost.AddCookie(sessionCookie)
+	wLANPost := httptest.NewRecorder()
+	srv.ServeHTTP(wLANPost, reqLANPost)
+	if wLANPost.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect after staging LAN, got %d", wLANPost.Code)
+	}
+
+	// 7. Verify Side-by-Side Diff modal on /dashboard
+	reqDash := httptest.NewRequest("GET", "/dashboard", nil)
+	reqDash.AddCookie(sessionCookie)
+	wDash := httptest.NewRecorder()
+	srv.ServeHTTP(wDash, reqDash)
+	dashBody := wDash.Body.String()
+
+	// Verify Side-by-Side Table Headers
+	if !strings.Contains(dashBody, "Current Active Config") || !strings.Contains(dashBody, "Staged Config") {
+		t.Errorf("expected side-by-side diff table headers 'Current Active Config' and 'Staged Config' in dashboard HTML")
+	}
+
+	// Verify diff values are rendered
+	if !strings.Contains(dashBody, "enp3s0") || !strings.Contains(dashBody, "wlan2") || !strings.Contains(dashBody, "br1") {
+		t.Errorf("expected staged interface values enp3s0, wlan2, br1 in diff modal, got:\n%s", dashBody)
+	}
+	if !strings.Contains(dashBody, "eth0") || !strings.Contains(dashBody, "wlan1") || !strings.Contains(dashBody, "br0") {
+		t.Errorf("expected active interface values eth0, wlan1, br0 in diff modal, got:\n%s", dashBody)
+	}
+
+	// 8. Commit and Push staged changes
+	reqPush := httptest.NewRequest("POST", "/config/push", nil)
+	reqPush.AddCookie(sessionCookie)
+	wPush := httptest.NewRecorder()
+	srv.ServeHTTP(wPush, reqPush)
+	if wPush.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect after push, got %d", wPush.Code)
+	}
+
+	// 9. Verify LiveConfig has updated interfaces
+	liveCfg := srv.cfgMgr.GetLive()
+	if liveCfg.WAN.Interface != "enp3s0" {
+		t.Errorf("expected live WAN Interface to be enp3s0, got %s", liveCfg.WAN.Interface)
+	}
+	if liveCfg.AP.Interface != "wlan2" {
+		t.Errorf("expected live AP Interface to be wlan2, got %s", liveCfg.AP.Interface)
+	}
+	if liveCfg.LAN.Interface != "br1" {
+		t.Errorf("expected live LAN Interface to be br1, got %s", liveCfg.LAN.Interface)
+	}
+}

@@ -178,23 +178,28 @@ func (s *Server) baseViewData(activeNav string) map[string]interface{} {
 	leases, _ := s.sysMgr.GetDHCPLeases(s.sysRoot)
 
 	liveCfg := s.cfgMgr.GetLive()
-	wanIface := "eth0"
-	if liveCfg.WAN.Mode == "wireless" {
-		wanIface = "wlan0"
+	wanIface := liveCfg.WAN.Interface
+	if wanIface == "" {
+		if liveCfg.WAN.Mode == "wireless" {
+			wanIface = "wlan0"
+		} else {
+			wanIface = "eth0"
+		}
 	}
 	wanStatus := s.sysMgr.GetWANStatus(wanIface)
 
 	return map[string]interface{}{
-		"ActiveNav":        activeNav,
-		"LiveConfig":       liveCfg,
-		"StagedConfig":     s.cfgMgr.GetStaged(),
-		"HasStagedChanges": s.cfgMgr.HasStagedChanges(),
-		"StagedDiffs":      diffs,
-		"AlertBanner":      alertMsg,
-		"AlertType":        alertType,
-		"Leases":           leases,
-		"WANStatus":        wanStatus,
-		"IPSecLive":        network.GetIPSecLiveStatus(s.mock),
+		"ActiveNav":         activeNav,
+		"LiveConfig":        liveCfg,
+		"StagedConfig":      s.cfgMgr.GetStaged(),
+		"HasStagedChanges":  s.cfgMgr.HasStagedChanges(),
+		"StagedDiffs":       diffs,
+		"AlertBanner":       alertMsg,
+		"AlertType":         alertType,
+		"Leases":            leases,
+		"WANStatus":         wanStatus,
+		"IPSecLive":         network.GetIPSecLiveStatus(s.mock),
+		"NetworkInterfaces": network.ListNetworkInterfaces(),
 	}
 }
 
