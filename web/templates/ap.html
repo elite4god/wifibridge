@@ -1,0 +1,77 @@
+{{template "layout.html" .}}
+
+{{define "title"}}Downstream Access Point - WifiBridge{{end}}
+
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card card-stat bg-white p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="bi bi-wifi me-2 text-primary"></i>Downstream Access Point (wlan1)</h4>
+                    <p class="text-muted small mb-0">Configure the persistent management Wi-Fi hotspot hosted by hostapd (bridged to <code>br0</code>).</p>
+                </div>
+                <span class="badge bg-primary p-2">wlan1 &rarr; br0</span>
+            </div>
+
+            <form action="/ap" method="POST">
+                <div class="mb-3">
+                    <label for="ssid" class="form-label small fw-bold">Network Name (SSID)</label>
+                    <input type="text" class="form-control" id="ssid" name="ssid" value="{{.StagedConfig.AP.SSID}}" maxlength="32" required>
+                    <div class="form-text">Broadcasted Wi-Fi identifier (1 to 32 characters).</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="security" class="form-label small fw-bold">Security Mode</label>
+                    <select class="form-select" id="security" name="security" onchange="toggleAPPassphrase()">
+                        <option value="open" {{if eq .StagedConfig.AP.Security "open"}}selected{{end}}>Open (No password)</option>
+                        <option value="wpa2-psk" {{if eq .StagedConfig.AP.Security "wpa2-psk"}}selected{{end}}>WPA2-Personal (PSK)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="passphraseContainer" style="display: {{if eq .StagedConfig.AP.Security "wpa2-psk"}}block{{else}}none{{end}};">
+                    <label for="passphrase" class="form-label small fw-bold">WPA2 Passphrase</label>
+                    <input type="password" class="form-control" id="passphrase" name="passphrase" minlength="8" maxlength="63"
+                           placeholder="{{if .StagedConfig.AP.Passphrase}}•••••••• (Leave blank to keep existing){{else}}8 to 63 characters{{end}}">
+                    <div class="form-text">Must be between 8 and 63 ASCII characters.</div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="band" class="form-label small fw-bold">Frequency Band</label>
+                        <select class="form-select" id="band" name="band" onchange="updateChannels()">
+                            <option value="2.4GHz" {{if eq .StagedConfig.AP.Band "2.4GHz"}}selected{{end}}>2.4 GHz (802.11g/n)</option>
+                            <option value="5GHz" {{if eq .StagedConfig.AP.Band "5GHz"}}selected{{end}}>5 GHz (802.11a/n/ac)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="channel" class="form-label small fw-bold">Wi-Fi Channel</label>
+                        <select class="form-select" id="channel" name="channel">
+                            <option value="1" {{if eq .StagedConfig.AP.Channel 1}}selected{{end}}>Channel 1 (2412 MHz)</option>
+                            <option value="6" {{if or (eq .StagedConfig.AP.Channel 6) (eq .StagedConfig.AP.Channel 0)}}selected{{end}}>Channel 6 (2437 MHz)</option>
+                            <option value="11" {{if eq .StagedConfig.AP.Channel 11}}selected{{end}}>Channel 11 (2462 MHz)</option>
+                            <option value="36" {{if eq .StagedConfig.AP.Channel 36}}selected{{end}}>Channel 36 (5180 MHz)</option>
+                            <option value="40" {{if eq .StagedConfig.AP.Channel 40}}selected{{end}}>Channel 40 (5200 MHz)</option>
+                            <option value="44" {{if eq .StagedConfig.AP.Channel 44}}selected{{end}}>Channel 44 (5220 MHz)</option>
+                            <option value="48" {{if eq .StagedConfig.AP.Channel 48}}selected{{end}}>Channel 48 (5240 MHz)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Stage AP Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAPPassphrase() {
+    var sec = document.getElementById('security').value;
+    document.getElementById('passphraseContainer').style.display = (sec === 'wpa2-psk') ? 'block' : 'none';
+}
+</script>
+{{end}}

@@ -1,0 +1,96 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Ensure runtime state and configuration directories exist
+        mkdir -p /var/lib/wifibridge
+        chmod 0700 /var/lib/wifibridge
+        mkdir -p /etc/systemd/network
+        mkdir -p /etc/systemd/resolved.conf.d
+        mkdir -p /etc/hostapd
+        mkdir -p /etc/swanctl/conf.d
+        mkdir -p /var/lib/iwd
+
+        # Set up nftables include directory
+        mkdir -p /etc/nftables.d
+        if ! grep -q 'nftables.d' /etc/nftables.conf 2>/dev/null; then
+            echo 'include "/etc/nftables.d/*.nft"' >> /etc/nftables.conf
+        fi
+
+        # Default Bridge Device: br0
+        if [ ! -f /etc/systemd/network/05-br0.netdev ]; then
+            cat << 'EOF' > /etc/systemd/network/05-br0.netdev
+[NetDev]
+Name=br0
+Kind=bridge
+EOF
+        fi
+
+        # Remove legacy wlan1 LAN network file if present
+        rm -f /etc/systemd/network/10-lan-ap.network
+
+        # Default Downstream Bridge LAN Network: br0 (10.99.0.1/24 with DHCP Server)
+        if [ ! -f /etc/systemd/network/10-lan-br0.network ]; then
+            cat << 'EOF' > /etc/systemd/network/10-lan-br0.network
+[Match]
+Name=br0
+
+[Network]
+Address=10.99.0.1/24
+DHCPServer=yes
+IPForward=yes
+
+[DHCPServer]
+PoolOffset=100
+PoolSize=151
+DefaultLeaseTimeSec=86400
+DNS=10.99.0.1
+EOF
+        fi
+
+        # Default Upstream WAN: eth0 (DHCP client + IPv4 NAT Masquerade)
+        if [ ! -f /etc/systemd/network/20-wan.network ]; then
+            cat << 'EOF' > /etc/systemd/network/20-wan.network
+[Match]
+Name=eth0
+
+[Network]
+DHCP=yes
+IPForward=yes
+IPMasquerade=ipv4
+EOF
+        fi
+
+        # Default DNS Stub Listener for downstream LAN clients
+        if [ ! -f /etc/systemd/resolved.conf.d/wifibridge.conf ]; then
+            cat << 'EOF' > /etc/systemd/resolved.conf.d/wifibridge.conf
+[Resolve]
+DNSStubListenerExtra=10.99.0.1
+EOF
+        fi
+
+        # Default hostapd configuration (Open AP on wlan1 bridged to br0, SSID WifiBridge)
+        if [ ! -f /etc/hostapd/hostapd.conf ]; then
+            cat << 'EOF' > /etc/hostapd/hostapd.conf
+interface=wlan1
+bridge=br0
+driver=nl80211
+ssid=WifiBridge
+hw_mode=g
+channel=6
+ieee80211n=1
+EOF
+        fi
+
+        # Unmask and enable required daemons if systemctl is available
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl daemon-reload || true
+            systemctl unmask hostapd 2>/dev/null || true
+            systemctl enable systemd-networkd systemd-resolved hostapd iwd nftables wifibridge.service 2>/dev/null || true
+            systemctl restart systemd-networkd systemd-resolved hostapd nftables wifibridge.service 2>/dev/null || true
+        fi
+        ;;
+esac
+
+exit 0

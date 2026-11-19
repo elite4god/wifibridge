@@ -1,0 +1,98 @@
+{{template "layout.html" .}}
+
+{{define "title"}}WireGuard VPN - WifiBridge{{end}}
+
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card card-stat bg-white p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="bi bi-shield-lock-fill me-2 text-primary"></i>WireGuard VPN</h4>
+                    <p class="text-muted small mb-0">Kernel-native WireGuard interface managed by systemd-networkd (wg0).</p>
+                </div>
+                <div class="form-check form-switch fs-5">
+                    <span class="badge {{if .StagedConfig.WireGuard.Enabled}}bg-success{{else}}bg-secondary{{end}} p-2">
+                        {{if .StagedConfig.WireGuard.Enabled}}Enabled{{else}}Disabled{{end}}
+                    </span>
+                </div>
+            </div>
+
+            <form action="/vpn/wireguard" method="POST">
+                <div class="mb-3 form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="enabled" name="enabled" value="true"
+                           {{if .StagedConfig.WireGuard.Enabled}}checked{{end}}>
+                    <label class="form-check-label fw-bold" for="enabled">Enable WireGuard Client Interface</label>
+                </div>
+
+                <div class="card bg-light border p-3 mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-bold mb-0">Interface (wg0) Cryptographic Keys</h6>
+                        <button type="button" class="btn btn-outline-primary btn-sm"
+                                hx-post="/vpn/wireguard/keygen"
+                                hx-target="#keysContainer"
+                                hx-swap="innerHTML">
+                            <i class="bi bi-key-fill me-1"></i> Generate New Keypair
+                        </button>
+                    </div>
+
+                    <div id="keysContainer">
+                        <div class="mb-3">
+                            <label for="private_key" class="form-label small fw-bold">Interface Private Key</label>
+                            <input type="password" class="form-control font-monospace" id="private_key" name="private_key"
+                                   value="{{.StagedConfig.WireGuard.PrivateKey}}"
+                                   placeholder="{{if .StagedConfig.WireGuard.PrivateKey}}•••••••• (Leave blank to keep existing){{else}}Base64 Curve25519 Private Key{{end}}">
+                            <div class="form-text">Protected secret. Never echoed in clear text once saved.</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label for="local_ip" class="form-label small fw-bold">Tunnel Local IP (CIDR)</label>
+                        <input type="text" class="form-control font-monospace" id="local_ip" name="local_ip"
+                               value="{{if .StagedConfig.WireGuard.LocalIP}}{{.StagedConfig.WireGuard.LocalIP}}{{else}}10.100.0.2/24{{end}}" required>
+                        <div class="form-text">Assigned tunnel address (e.g. <code>10.100.0.2/24</code>)</div>
+                    </div>
+                </div>
+
+                <div class="card bg-light border p-3 mb-3">
+                    <h6 class="fw-bold mb-3">Remote WireGuard Peer</h6>
+                    <div class="mb-3">
+                        <label for="peer_public_key" class="form-label small fw-bold">Peer Public Key</label>
+                        <input type="text" class="form-control font-monospace" id="peer_public_key" name="peer_public_key"
+                               value="{{.StagedConfig.WireGuard.PeerPublicKey}}" placeholder="Server Base64 Public Key">
+                    </div>
+                    <div class="mb-3">
+                        <label for="peer_preshared_key" class="form-label small fw-bold">Peer Preshared Key (Optional)</label>
+                        <input type="password" class="form-control font-monospace" id="peer_preshared_key" name="peer_preshared_key"
+                               placeholder="{{if .StagedConfig.WireGuard.PeerPresharedKey}}•••••••• (Leave blank to keep existing){{else}}Optional PSK{{end}}">
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label for="peer_endpoint" class="form-label small fw-bold">Peer Endpoint (host:port)</label>
+                            <input type="text" class="form-control font-monospace" id="peer_endpoint" name="peer_endpoint"
+                                   value="{{.StagedConfig.WireGuard.PeerEndpoint}}" placeholder="vpn.example.com:51820">
+                        </div>
+                        <div class="col-md-5">
+                            <label for="persistent_keepalive" class="form-label small fw-bold">Keepalive (Seconds)</label>
+                            <input type="number" class="form-control" id="persistent_keepalive" name="persistent_keepalive"
+                                   value="{{if .StagedConfig.WireGuard.PersistentKeepalive}}{{.StagedConfig.WireGuard.PersistentKeepalive}}{{else}}25{{end}}">
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <label for="allowed_ips" class="form-label small fw-bold">Allowed IPs (Routing)</label>
+                        <input type="text" class="form-control font-monospace" id="allowed_ips" name="allowed_ips"
+                               value="{{if .StagedConfig.WireGuard.AllowedIPs}}{{.StagedConfig.WireGuard.AllowedIPs}}{{else}}0.0.0.0/0{{end}}">
+                        <div class="form-text">Use <code>0.0.0.0/0</code> for full tunnel redirect, or comma-separated subnets for split tunnel.</div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Stage WireGuard Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{{end}}

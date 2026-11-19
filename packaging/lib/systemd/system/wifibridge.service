@@ -1,0 +1,18 @@
+[Unit]
+Description=WifiBridge Network Appliance Daemon
+Documentation=https://github.com/jeremyleonard/wifibridge
+After=network.target systemd-networkd.service systemd-resolved.service hostapd.service iwd.service
+Wants=systemd-networkd.service systemd-resolved.service hostapd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/wifibridge -listen 10.99.0.1:80
+WorkingDirectory=/var/lib/wifibridge
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

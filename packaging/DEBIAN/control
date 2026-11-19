@@ -1,0 +1,12 @@
+Package: wifibridge
+Version: 1.0.0
+Section: net
+Priority: optional
+Architecture: amd64
+Maintainer: Jeremy Leonard <jeremyl@efgsystems.com>
+Depends: systemd, systemd-resolved, iwd, hostapd, strongswan-swanctl, nftables
+Homepage: https://github.com/jeremyleonard/wifibridge
+Description: WifiBridge travel router and VPN gateway daemon
+ A headless network appliance management daemon and Web UI designed for
+ Debian 13 (Trixie). Turns a Linux device with eth0, wlan0, and wlan1 into
+ an always-on travel router and VPN gateway.

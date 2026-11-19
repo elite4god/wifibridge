@@ -1,0 +1,97 @@
+{{template "layout.html" .}}
+
+{{define "title"}}IPSec Site-to-Site VPN - WifiBridge{{end}}
+
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card card-stat bg-white p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="bi bi-lock-fill me-2 text-primary"></i>IPSec Site-to-Site VPN</h4>
+                    <p class="text-muted small mb-0">Managed via strongSwan (swanctl) with IKEv2 and modern cryptographic suites.</p>
+                </div>
+                <span class="badge {{if .StagedConfig.IPSec.Enabled}}bg-success{{else}}bg-secondary{{end}} p-2">
+                    {{if .StagedConfig.IPSec.Enabled}}Enabled{{else}}Disabled{{end}}
+                </span>
+            </div>
+
+            <form action="/vpn/ipsec" method="POST">
+                <div class="mb-3 form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="enabled" name="enabled" value="true"
+                           {{if .StagedConfig.IPSec.Enabled}}checked{{end}}>
+                    <label class="form-check-label fw-bold" for="enabled">Enable IPSec Site-to-Site Connection</label>
+                </div>
+
+                <div class="card bg-light border p-3 mb-3">
+                    <h6 class="fw-bold mb-3">Gateways & Authentication</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="local_gateway" class="form-label small fw-bold">Local Gateway</label>
+                            <input type="text" class="form-control font-monospace" id="local_gateway" name="local_gateway"
+                                   value="{{if .StagedConfig.IPSec.LocalGateway}}{{.StagedConfig.IPSec.LocalGateway}}{{else}}%defaultroute{{end}}">
+                            <div class="form-text">Default: <code>%defaultroute</code></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="remote_gateway" class="form-label small fw-bold">Remote Gateway (IP or FQDN)</label>
+                            <input type="text" class="form-control font-monospace" id="remote_gateway" name="remote_gateway"
+                                   value="{{.StagedConfig.IPSec.RemoteGateway}}" placeholder="vpn.office.com">
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label for="psk" class="form-label small fw-bold">Pre-Shared Key (IKEv2 Secret)</label>
+                        <input type="password" class="form-control font-monospace" id="psk" name="psk"
+                               placeholder="{{if .StagedConfig.IPSec.PSK}}•••••••• (Leave blank to keep existing){{else}}Enter strong IKE pre-shared key{{end}}">
+                    </div>
+                </div>
+
+                <div class="card bg-light border p-3 mb-3">
+                    <h6 class="fw-bold mb-3">Traffic Selectors & Subnets</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="local_subnet" class="form-label small fw-bold">Local Subnet</label>
+                            <input type="text" class="form-control font-monospace" id="local_subnet" name="local_subnet"
+                                   value="{{if .StagedConfig.IPSec.LocalSubnet}}{{.StagedConfig.IPSec.LocalSubnet}}{{else}}10.99.0.0/24{{end}}">
+                            <div class="form-text">Downstream LAN subnet</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="remote_subnet" class="form-label small fw-bold">Remote Subnet</label>
+                            <input type="text" class="form-control font-monospace" id="remote_subnet" name="remote_subnet"
+                                   value="{{.StagedConfig.IPSec.RemoteSubnet}}" placeholder="192.168.10.0/24">
+                            <div class="form-text">Remote corporate or home subnet</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label for="proposals" class="form-label small fw-bold">Cipher Proposals</label>
+                        <input type="text" class="form-control font-monospace" id="proposals" name="proposals"
+                               value="{{if .StagedConfig.IPSec.Proposals}}{{.StagedConfig.IPSec.Proposals}}{{else}}aes256-sha256-modp2048{{end}}">
+                        <div class="form-text">Default: <code>aes256-sha256-modp2048</code></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Stage IPSec Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Live Status Card -->
+        <div class="card card-stat bg-white p-3">
+            <h5 class="fw-bold mb-3"><i class="bi bi-activity me-2 text-primary"></i>Live Tunnel Status (swanctl)</h5>
+            <div class="p-3 rounded border {{if .IPSecLive.Connected}}bg-light border-success{{else}}bg-light{{end}}">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="fw-bold">Security Association (SA)</span>
+                    <span class="badge {{if .IPSecLive.Connected}}bg-success{{else}}bg-secondary{{end}}">
+                        {{if .IPSecLive.Connected}}ESTABLISHED{{else}}INACTIVE{{end}}
+                    </span>
+                </div>
+                <p class="text-muted small mb-0">{{.IPSecLive.Details}}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

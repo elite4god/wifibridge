@@ -1,0 +1,144 @@
+{{template "layout.html" .}}
+
+{{define "title"}}WAN Uplink Configuration - WifiBridge{{end}}
+
+{{define "content"}}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card card-stat bg-white p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="bi bi-globe me-2 text-primary"></i>Upstream WAN Uplink</h4>
+                    <p class="text-muted small mb-0">Select and stage the primary Internet gateway interface.</p>
+                </div>
+                <span class="badge {{if eq .StagedConfig.WAN.Mode "wireless"}}bg-info{{else}}bg-success{{end}} p-2">
+                    Staged: {{if eq .StagedConfig.WAN.Mode "wireless"}}Wi-Fi (wlan0){{else}}Ethernet (eth0){{end}}
+                </span>
+            </div>
+
+            <form action="/wan" method="POST">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Uplink Interface Mode</label>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-check p-3 border rounded h-100 {{if eq .StagedConfig.WAN.Mode "ethernet"}}border-primary bg-light{{end}}">
+                                <input class="form-check-input" type="radio" name="mode" id="modeEth" value="ethernet"
+                                       {{if eq .StagedConfig.WAN.Mode "ethernet"}}checked{{end}} onchange="toggleWifiFields(false)">
+                                <label class="form-check-label w-100" for="modeEth">
+                                    <strong class="d-block"><i class="bi bi-ethernet me-1 text-primary"></i> Ethernet (eth0)</strong>
+                                    <span class="text-muted small">Wired Ethernet cable connection. Automatic DHCP client.</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check p-3 border rounded h-100 {{if eq .StagedConfig.WAN.Mode "wireless"}}border-primary bg-light{{end}}">
+                                <input class="form-check-input" type="radio" name="mode" id="modeWifi" value="wireless"
+                                       {{if eq .StagedConfig.WAN.Mode "wireless"}}checked{{end}} onchange="toggleWifiFields(true)">
+                                <label class="form-check-label w-100" for="modeWifi">
+                                    <strong class="d-block"><i class="bi bi-wifi me-1 text-primary"></i> Wireless Station (wlan0)</strong>
+                                    <span class="text-muted small">Connects upstream via built-in Wi-Fi client (iwd).</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="wifiSection" style="display: {{if eq .StagedConfig.WAN.Mode "wireless"}}block{{else}}none{{end}};">
+                    <hr>
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-broadcast me-2 text-primary"></i>Nearby Wi-Fi Networks</h5>
+                        <button type="button" class="btn btn-outline-primary btn-sm"
+                                hx-get="/wan/scan"
+                                hx-target="#wifiScanResults"
+                                hx-indicator="#scanSpinner">
+                            <i class="bi bi-arrow-repeat me-1"></i> Scan Networks
+                        </button>
+                    </div>
+
+                    <div id="scanSpinner" class="htmx-indicator text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Scanning...</span>
+                        </div>
+                        <div class="text-muted small mt-2">Scanning Wi-Fi channels via iwd...</div>
+                    </div>
+
+                    <div id="wifiScanResults" class="mb-4">
+                        <div class="alert alert-light border py-2 small text-muted">
+                            Click "Scan Networks" to discover available wireless access points.
+                        </div>
+                    </div>
+
+                    <div class="card bg-light border p-3 mb-3">
+                        <h6 class="fw-bold mb-3">Wireless Connection Details</h6>
+                        <div class="mb-3">
+                            <label for="ssid" class="form-label small fw-bold">SSID (Network Name)</label>
+                            <input type="text" class="form-control" id="ssid" name="ssid" value="{{.StagedConfig.WAN.SSID}}" placeholder="Network SSID">
+                        </div>
+                        <div class="mb-3">
+                            <label for="security" class="form-label small fw-bold">Security Type</label>
+                            <select class="form-select" id="security" name="security" onchange="updateSecurityFields()">
+                                <option value="open" {{if eq .StagedConfig.WAN.Security "open"}}selected{{end}}>Open (Unencrypted)</option>
+                                <option value="psk" {{if or (eq .StagedConfig.WAN.Security "psk") (eq .StagedConfig.WAN.Security "")}}selected{{end}}>WPA2/WPA3 Personal (PSK)</option>
+                                <option value="8021x" {{if eq .StagedConfig.WAN.Security "8021x"}}selected{{end}}>WPA2/WPA3 Enterprise (802.1x)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="pskField">
+                            <label for="password" class="form-label small fw-bold">Passphrase / Password</label>
+                            <input type="password" class="form-control" id="password" name="password"
+                                   placeholder="{{if .StagedConfig.WAN.Password}}•••••••• (Leave blank to keep existing){{else}}Enter Wi-Fi passphrase{{end}}">
+                        </div>
+                        <div id="enterpriseFields" style="display: {{if eq .StagedConfig.WAN.Security "8021x"}}block{{else}}none{{end}};">
+                            <div class="mb-3">
+                                <label for="eap_method" class="form-label small fw-bold">EAP Method</label>
+                                <select class="form-select" id="eap_method" name="eap_method">
+                                    <option value="PEAP" {{if eq .StagedConfig.WAN.EAPMethod "PEAP"}}selected{{end}}>PEAP</option>
+                                    <option value="TTLS" {{if eq .StagedConfig.WAN.EAPMethod "TTLS"}}selected{{end}}>TTLS</option>
+                                    <option value="TLS" {{if eq .StagedConfig.WAN.EAPMethod "TLS"}}selected{{end}}>TLS</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="eap_identity" class="form-label small fw-bold">EAP Identity (Username)</label>
+                                <input type="text" class="form-control" id="eap_identity" name="eap_identity" value="{{.StagedConfig.WAN.EAPIdentity}}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="eap_password" class="form-label small fw-bold">EAP Password</label>
+                                <input type="password" class="form-control" id="eap_password" name="eap_password"
+                                       placeholder="{{if .StagedConfig.WAN.EAPPassword}}•••••••• (Leave blank to keep existing){{else}}Enter EAP password{{end}}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Stage WAN Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleWifiFields(show) {
+    document.getElementById('wifiSection').style.display = show ? 'block' : 'none';
+}
+function updateSecurityFields() {
+    var sec = document.getElementById('security').value;
+    document.getElementById('pskField').style.display = (sec === 'psk') ? 'block' : 'none';
+    document.getElementById('enterpriseFields').style.display = (sec === '8021x') ? 'block' : 'none';
+}
+function selectNetwork(ssid, sec) {
+    document.getElementById('ssid').value = ssid;
+    var secSelect = document.getElementById('security');
+    if (sec === 'open') {
+        secSelect.value = 'open';
+    } else if (sec === '8021x') {
+        secSelect.value = '8021x';
+    } else {
+        secSelect.value = 'psk';
+    }
+    updateSecurityFields();
+}
+</script>
+{{end}}

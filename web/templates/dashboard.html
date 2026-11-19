@@ -1,0 +1,159 @@
+{{template "layout.html" .}}
+
+{{define "title"}}Dashboard - WifiBridge{{end}}
+
+{{define "content"}}
+<div class="row g-3 mb-4">
+    <!-- WAN Card -->
+    <div class="col-md-4">
+        <div class="card card-stat bg-white h-100 p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-bold text-uppercase">Public Interface / Upstream WAN</span>
+                <span class="badge {{if .WANStatus.Online}}bg-success{{else}}bg-secondary{{end}}">
+                    <i class="bi {{if eq .LiveConfig.WAN.Mode "wireless"}}bi-wifi{{else}}bi-ethernet{{end}} me-1"></i>
+                    {{.WANStatus.Interface}} &bull; {{if .WANStatus.Online}}Online{{else}}Offline{{end}}
+                </span>
+            </div>
+            <h4 class="mb-1 text-dark fw-bold">
+                {{if .WANStatus.IPAddress}}
+                    {{.WANStatus.IPAddress}}
+                {{else}}
+                    <span class="text-muted fs-5">No IP Assigned</span>
+                {{end}}
+            </h4>
+            <div class="text-muted small mb-2">
+                {{if eq .LiveConfig.WAN.Mode "wireless"}}
+                    SSID: <strong>{{.LiveConfig.WAN.SSID}}</strong> &bull;
+                {{end}}
+                Mode: <strong>{{.LiveConfig.WAN.Mode}}</strong> &bull; NAT: <strong>IPMasquerade</strong>
+            </div>
+            <div class="border-top pt-2 mt-auto small">
+                <div class="d-flex justify-content-between text-muted">
+                    <span>Gateway:</span>
+                    <strong class="text-dark">{{if .WANStatus.Gateway}}{{.WANStatus.Gateway}}{{else}}&mdash;{{end}}</strong>
+                </div>
+                <div class="d-flex justify-content-between text-muted">
+                    <span>DNS:</span>
+                    <strong class="text-dark">{{if .WANStatus.DNS}}{{.WANStatus.DNS}}{{else}}&mdash;{{end}}</strong>
+                </div>
+            </div>
+            <a href="/wan" class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-gear me-1"></i> Configure Uplink</a>
+        </div>
+    </div>
+
+    <!-- Downstream AP Card -->
+    <div class="col-md-4">
+        <div class="card card-stat bg-white h-100 p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-bold text-uppercase">Downstream AP (wlan1 &rarr; br0)</span>
+                <span class="badge bg-primary"><i class="bi bi-broadcast me-1"></i> Bridge Member</span>
+            </div>
+            <h4 class="mb-1 text-dark fw-bold">{{.LiveConfig.AP.SSID}}</h4>
+            <div class="text-muted small mb-3">
+                Security: <strong>{{.LiveConfig.AP.Security}}</strong> &bull; Ch: <strong>{{.LiveConfig.AP.Channel}} ({{.LiveConfig.AP.Band}})</strong>
+            </div>
+            <a href="/ap" class="btn btn-outline-primary btn-sm mt-auto"><i class="bi bi-wifi me-1"></i> AP Settings</a>
+        </div>
+    </div>
+
+    <!-- Local LAN & DHCP Card -->
+    <div class="col-md-4">
+        <div class="card card-stat bg-white h-100 p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-bold text-uppercase">Bridge LAN (br0)</span>
+                <span class="badge bg-info text-dark"><i class="bi bi-diagram-3 me-1"></i> DNS: {{.LiveConfig.LAN.GatewayIP}}</span>
+            </div>
+            <h4 class="mb-1 text-dark fw-bold">{{.LiveConfig.LAN.GatewayIP}}</h4>
+            <div class="text-muted small mb-2">
+                Subnet: <strong>{{.LiveConfig.LAN.Subnet}}</strong> &bull; Leases: <strong>{{len .Leases}} active</strong>
+            </div>
+            <div class="border-top pt-2 mt-auto small text-muted">
+                Bridge Members: <strong class="text-dark">wlan1{{if ne .LiveConfig.WAN.Mode "ethernet"}}, eth0{{end}}</strong>
+            </div>
+            <a href="/lan" class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-hdd-network me-1"></i> LAN Settings</a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- WireGuard VPN Status -->
+    <div class="col-md-6">
+        <div class="card card-stat bg-white p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="fw-bold mb-0"><i class="bi bi-shield-lock-fill text-primary me-2"></i>WireGuard VPN</h6>
+                {{if .LiveConfig.WireGuard.Enabled}}
+                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Enabled</span>
+                {{else}}
+                <span class="badge bg-secondary">Disabled</span>
+                {{end}}
+            </div>
+            <p class="text-muted small mb-2">
+                {{if .LiveConfig.WireGuard.Enabled}}
+                Endpoint: <code>{{.LiveConfig.WireGuard.PeerEndpoint}}</code> &bull; Tunnel IP: <code>{{.LiveConfig.WireGuard.LocalIP}}</code>
+                {{else}}
+                WireGuard client interface is currently disabled.
+                {{end}}
+            </p>
+            <a href="/vpn/wireguard" class="btn btn-outline-secondary btn-sm mt-auto align-self-start">Configure WireGuard</a>
+        </div>
+    </div>
+
+    <!-- IPSec Site-to-Site Status -->
+    <div class="col-md-6">
+        <div class="card card-stat bg-white p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="fw-bold mb-0"><i class="bi bi-lock-fill text-indigo me-2"></i>IPSec Site-to-Site (strongSwan)</h6>
+                {{if .LiveConfig.IPSec.Enabled}}
+                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Configured</span>
+                {{else}}
+                <span class="badge bg-secondary">Disabled</span>
+                {{end}}
+            </div>
+            <p class="text-muted small mb-2">
+                {{if .LiveConfig.IPSec.Enabled}}
+                Remote Gateway: <code>{{.LiveConfig.IPSec.RemoteGateway}}</code> &bull; Remote Subnet: <code>{{.LiveConfig.IPSec.RemoteSubnet}}</code>
+                {{else}}
+                IPSec Site-to-Site tunnel is currently disabled.
+                {{end}}
+            </p>
+            <a href="/vpn/ipsec" class="btn btn-outline-secondary btn-sm mt-auto align-self-start">Configure IPSec</a>
+        </div>
+    </div>
+</div>
+
+<!-- Connected Clients Table -->
+<div class="card card-stat bg-white p-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-laptop me-2 text-primary"></i>Connected Downstream LAN Clients</h5>
+        <span class="badge bg-primary">{{len .Leases}} Clients</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover table-striped table-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Assigned IP</th>
+                    <th>MAC Address</th>
+                    <th>Hostname</th>
+                    <th>Lease Expiration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Leases}}
+                    {{range .Leases}}
+                    <tr>
+                        <td><strong>{{.IPAddress}}</strong></td>
+                        <td><code>{{.MACAddress}}</code></td>
+                        <td>{{if .Hostname}}{{.Hostname}}{{else}}<span class="text-muted">unknown</span>{{end}}</td>
+                        <td><span class="badge bg-light text-dark border">{{.ExpiresAt.Format "15:04:05 MST"}}</span></td>
+                    </tr>
+                    {{end}}
+                {{else}}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3">No active client leases found.</td>
+                    </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{end}}
