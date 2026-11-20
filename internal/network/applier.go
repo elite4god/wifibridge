@@ -124,28 +124,32 @@ func (a *Applier) ApplyFiles(cfg *config.Config) error {
 	// Clean up legacy 10-lan-ap.network if present
 	_ = os.Remove(filepath.Join(netDir, "10-lan-ap.network"))
 
-	// 1a. AP wireless interface always enslaved to br0 (12-wlan-bridge.network)
+	// 1a. AP wireless interface always enslaved to br0 (15-wlan-bridge.network)
 	apIface := cfg.AP.Interface
 	if apIface == "" {
-		apIface = "wlan1"
+		apIface = "wlan0"
 	}
-	wlanBridgeContent, err := GenerateEthernetBridgeNetwork(apIface, brName)
+	wlanBridgeContent, err := GenerateInterfaceBridgeNetwork(apIface, brName)
 	if err != nil {
 		return fmt.Errorf("ap interface %s bridge error: %w", apIface, err)
 	}
-	if err := writeAtomic(filepath.Join(netDir, "12-wlan-bridge.network"), wlanBridgeContent, 0644); err != nil {
+	if err := writeAtomic(filepath.Join(netDir, "15-wlan-bridge.network"), wlanBridgeContent, 0644); err != nil {
 		return err
 	}
 
-	// 1b. Ethernet member of bridge (15-eth-bridge.network)
+	// 1b. Ethernet member of bridge (16-eth-bridge.network)
 	// The ethernet interface should be a member of this bridge if it is not the uplink interface.
-	ethBridgePath := filepath.Join(netDir, "15-eth-bridge.network")
+	ethBridgePath := filepath.Join(netDir, "16-eth-bridge.network")
+	ethInterface := cfg.ETH.Interface
+	if ethInterface == "" {
+		ethInterface = "eth0"
+	}
 	wanEthIface := cfg.WAN.Interface
 	if wanEthIface == "" {
-		wanEthIface = "eth0"
+		wanEthIface = "wlan1"
 	}
 	if cfg.WAN.Mode != "ethernet" {
-		ethBridgeContent, err := GenerateEthernetBridgeNetwork(wanEthIface, brName)
+		ethBridgeContent, err := GenerateInterfaceBridgeNetwork(ethInterface, brName)
 		if err != nil {
 			return fmt.Errorf("eth bridge error: %w", err)
 		}
@@ -153,7 +157,7 @@ func (a *Applier) ApplyFiles(cfg *config.Config) error {
 			return err
 		}
 	} else {
-		// wanEthIface is the uplink WAN interface, so it is NOT a bridge member
+		// ethInterface is the uplink WAN interface, so it is NOT a bridge member
 		_ = os.Remove(ethBridgePath)
 	}
 
@@ -237,7 +241,7 @@ func (a *Applier) ApplyFiles(cfg *config.Config) error {
 	wanIface := cfg.WAN.Interface
 	if wanIface == "" {
 		if cfg.WAN.Mode == "wireless" {
-			wanIface = "wlan0"
+			wanIface = "wlan1"
 		} else {
 			wanIface = "eth0"
 		}
@@ -278,7 +282,7 @@ func (a *Applier) monitorWANFailsafe(newLive *config.Config, backup *config.Conf
 	activeIface := newLive.WAN.Interface
 	if activeIface == "" {
 		if newLive.WAN.Mode == "wireless" {
-			activeIface = "wlan0"
+			activeIface = "wlan1"
 		} else {
 			activeIface = "eth0"
 		}

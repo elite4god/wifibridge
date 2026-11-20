@@ -88,10 +88,10 @@ func TestConfigManagerStaging(t *testing.T) {
 	hasAPInterfaceDiff := false
 	hasLANInterfaceDiff := false
 	for _, d := range diffs {
-		if d.Section == "WAN" && d.Field == "Interface" && d.OldVal == "eth0" && d.NewVal == "wlan2" {
+		if d.Section == "WAN" && d.Field == "Interface" && d.OldVal == "wlan1" && d.NewVal == "wlan2" {
 			hasWANInterfaceDiff = true
 		}
-		if d.Section == "Access Point" && d.Field == "Interface" && d.OldVal == "wlan1" && d.NewVal == "wlan3" {
+		if d.Section == "Access Point" && d.Field == "Interface" && d.OldVal == "wlan0" && d.NewVal == "wlan3" {
 			hasAPInterfaceDiff = true
 		}
 		if d.Section == "LAN" && d.Field == "Interface" && d.OldVal == "br0" && d.NewVal == "br1" {
@@ -124,8 +124,8 @@ func TestConfigManagerStaging(t *testing.T) {
 	if newLive.LAN.Interface != "br1" {
 		t.Errorf("expected new live LAN interface to be br1, got %s", newLive.LAN.Interface)
 	}
-	if backup.WAN.Mode != "ethernet" {
-		t.Errorf("expected backup WAN mode to be ethernet, got %s", backup.WAN.Mode)
+	if backup.WAN.Mode != "wireless" {
+		t.Errorf("expected backup WAN mode to be wireless, got %s", backup.WAN.Mode)
 	}
 	if mgr.HasStagedChanges() {
 		t.Errorf("expected no staged changes after commit")
@@ -136,8 +136,8 @@ func TestConfigManagerStaging(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to rollback: %v", err)
 	}
-	if restored.WAN.Mode != "ethernet" {
-		t.Errorf("expected restored WAN mode to be ethernet, got %s", restored.WAN.Mode)
+	if restored.WAN.Mode != "wireless" {
+		t.Errorf("expected restored WAN mode to be wireless, got %s", restored.WAN.Mode)
 	}
 }
 

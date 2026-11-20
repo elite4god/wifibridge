@@ -124,7 +124,7 @@ The Go backend acts as a declarative configuration compiler, reading `/var/lib/w
 | Target Path | Owner Service | Purpose |
 | :--- | :--- | :--- |
 | `/etc/systemd/network/05-br0.netdev` | `systemd-networkd` | Virtual bridge device definition (`Kind=bridge`). |
-| `/etc/systemd/network/10-lan-br0.network` | `systemd-networkd` | Static IP (`10.99.0.1/24`), `DHCPServer=yes`, `IPForward=yes` on `br0`. |
+| `/etc/systemd/network/10-lan-br0.network` | `systemd-networkd` | Static IP (`10.99.0.1/24`), `DHCPServer=yes`, `IPv4Forwarding=yes` on `br0`. |
 | `/etc/systemd/network/12-wlan-bridge.network` | `systemd-networkd` | Enslaves `wlan1` to `br0` |
 | `/etc/systemd/network/15-eth-bridge.network` | `systemd-networkd` | Enslaves `eth0` to `br0` when `eth0` is not the active WAN uplink. |
 | `/etc/systemd/network/20-wan.network` | `systemd-networkd` | Active WAN (`eth0` or `wlan0`), `DHCP=yes`, `IPMasquerade=ipv4`. |

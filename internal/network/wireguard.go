@@ -33,7 +33,7 @@ Name=wg0
 
 [Network]
 Address={{.LocalIP}}
-IPForward=yes
+IPv4Forwarding=yes
 IPMasquerade=ipv4
 `
 

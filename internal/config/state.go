@@ -15,20 +15,21 @@ type Config struct {
 	WAN       WANConfig       `json:"wan"`
 	LAN       LANConfig       `json:"lan"`
 	AP        APConfig        `json:"ap"`
+	ETH       ETHConfig       `json:"eth"`
 	WireGuard WireGuardConfig `json:"wireguard"`
 	IPSec     IPSecConfig     `json:"ipsec"`
 }
 
 // WANConfig represents upstream WAN settings.
 type WANConfig struct {
-	Mode        string `json:"mode"`                   // "ethernet" or "wireless"
-	Interface   string `json:"interface,omitempty"`    // e.g. "eth0", "enp3s0", "wlan0"
-	SSID        string `json:"ssid,omitempty"`         // Wi-Fi WAN SSID
-	Security    string `json:"security,omitempty"`     // "open", "psk", "8021x"
-	Password    string `json:"password,omitempty"`     // Masked in UI
+	Mode        string `json:"mode"`                // "ethernet" or "wireless"
+	Interface   string `json:"interface,omitempty"` // e.g. "eth0", "enp3s0", "wlan0"
+	SSID        string `json:"ssid,omitempty"`      // Wi-Fi WAN SSID
+	Security    string `json:"security,omitempty"`  // "open", "psk", "8021x"
+	Password    string `json:"password,omitempty"`  // Masked in UI
 	EAPIdentity string `json:"eap_identity,omitempty"`
 	EAPPassword string `json:"eap_password,omitempty"`
-	EAPMethod   string `json:"eap_method,omitempty"`   // "PEAP", "TTLS", "TLS"
+	EAPMethod   string `json:"eap_method,omitempty"` // "PEAP", "TTLS", "TLS"
 }
 
 // LANConfig represents downstream LAN network and DHCP settings.
@@ -43,13 +44,17 @@ type LANConfig struct {
 
 // APConfig represents downstream hostapd Access Point settings.
 type APConfig struct {
-	Interface  string `json:"interface"`            // "wlan1"
+	Interface  string `json:"interface"`            // "wlan0"
 	Bridge     string `json:"bridge,omitempty"`     // "br0"
 	SSID       string `json:"ssid"`                 // "WifiBridge"
 	Security   string `json:"security"`             // "open" or "wpa2-psk"
 	Passphrase string `json:"passphrase,omitempty"` // 8-63 ASCII
 	Channel    int    `json:"channel"`              // e.g. 6 (2.4G) or 36 (5G)
 	Band       string `json:"band"`                 // "2.4GHz" or "5GHz"
+}
+
+type ETHConfig struct {
+	Interface string `json:"interface,omitempty` // Physical interface name. eth0 end0
 }
 
 // WireGuardConfig represents systemd-networkd WireGuard VPN settings.
@@ -59,9 +64,9 @@ type WireGuardConfig struct {
 	LocalIP             string `json:"local_ip"`              // e.g. "10.100.0.2/24"
 	PeerPublicKey       string `json:"peer_public_key"`
 	PeerPresharedKey    string `json:"peer_preshared_key,omitempty"`
-	PeerEndpoint        string `json:"peer_endpoint"`         // host:port
-	AllowedIPs          string `json:"allowed_ips"`           // default "0.0.0.0/0"
-	PersistentKeepalive int    `json:"persistent_keepalive"`  // 25
+	PeerEndpoint        string `json:"peer_endpoint"`        // host:port
+	AllowedIPs          string `json:"allowed_ips"`          // default "0.0.0.0/0"
+	PersistentKeepalive int    `json:"persistent_keepalive"` // 25
 }
 
 // IPSecConfig represents strongSwan swanctl IPSec Site-to-Site settings.
@@ -99,8 +104,8 @@ type Manager struct {
 func DefaultConfig() *Config {
 	return &Config{
 		WAN: WANConfig{
-			Mode:      "ethernet",
-			Interface: "eth0",
+			Mode:      "wireless",
+			Interface: "wlan1",
 		},
 		LAN: LANConfig{
 			Interface:    "br0",
@@ -111,12 +116,15 @@ func DefaultConfig() *Config {
 			LeaseTimeSec: 86400,
 		},
 		AP: APConfig{
-			Interface: "wlan1",
+			Interface: "wlan0",
 			Bridge:    "br0",
 			SSID:      "WifiBridge",
 			Security:  "open",
 			Channel:   6,
 			Band:      "2.4GHz",
+		},
+		ETH: ETHConfig{
+			Interface: "eth0",
 		},
 		WireGuard: WireGuardConfig{
 			Enabled:             false,
@@ -140,19 +148,22 @@ func normalizeConfig(cfg *Config) {
 	}
 	if cfg.WAN.Interface == "" {
 		if cfg.WAN.Mode == "wireless" {
-			cfg.WAN.Interface = "wlan0"
+			cfg.WAN.Interface = "wlan1"
 		} else {
 			cfg.WAN.Interface = "eth0"
 		}
 	}
-	if cfg.LAN.Interface == "" || cfg.LAN.Interface == "wlan1" {
+	if cfg.LAN.Interface == "" || cfg.LAN.Interface == "wlan0" {
 		cfg.LAN.Interface = "br0"
 	}
 	if cfg.AP.Bridge == "" {
 		cfg.AP.Bridge = "br0"
 	}
 	if cfg.AP.Interface == "" {
-		cfg.AP.Interface = "wlan1"
+		cfg.AP.Interface = "wlan0"
+	}
+	if cfg.ETH.Interface == "" {
+		cfg.AP.Interface = "eth0"
 	}
 }
 
@@ -353,6 +364,11 @@ func (m *Manager) GetDiff() []ConfigChange {
 	}
 	if m.live.AP.Band != m.staged.AP.Band {
 		diffs = append(diffs, ConfigChange{"Access Point", "Band", m.live.AP.Band, m.staged.AP.Band})
+	}
+
+	// ETH
+	if m.live.ETH.Interface != m.staged.ETH.Interface {
+		diffs = append(diffs, ConfigChange{"Ethernet", "Interface", m.live.ETH.Interface, m.staged.ETH.Interface})
 	}
 
 	// WireGuard

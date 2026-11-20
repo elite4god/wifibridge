@@ -23,7 +23,7 @@ Name={{.Name}}
 Kind=bridge
 `
 
-const ethBridgeNetworkTemplate = `[Match]
+const intBridgeNetworkTemplate = `[Match]
 Name={{.Interface}}
 
 [Network]
@@ -36,7 +36,8 @@ Name={{.Interface}}
 [Network]
 Address={{.Address}}
 DHCPServer=yes
-IPForward=yes
+IPv4Forwarding=yes
+IPMasquerade=ipv4
 
 [DHCPServer]
 PoolOffset={{.PoolOffset}}
@@ -50,8 +51,7 @@ Name={{.Interface}}
 
 [Network]
 DHCP=yes
-IPForward=yes
-IPMasquerade=ipv4
+IPv4Forwarding=yes
 `
 
 const resolvedConfTemplate = `[Resolve]
@@ -63,8 +63,8 @@ type BridgeNetdevData struct {
 	Name string
 }
 
-// EthBridgeNetworkData holds template parameters for 15-eth-bridge.network.
-type EthBridgeNetworkData struct {
+// IntBridgeNetworkData holds template parameters for 14-wlan-bridge.network and 15-eth-bridge.network.
+type IntBridgeNetworkData struct {
 	Interface string
 	Bridge    string
 }
@@ -397,19 +397,19 @@ func GenerateBridgeNetdev(name string) (string, error) {
 	return buf.String(), nil
 }
 
-// GenerateEthernetBridgeNetwork generates content for 15-eth-bridge.network.
-func GenerateEthernetBridgeNetwork(iface, bridge string) (string, error) {
+// GenerateInterfaceBridgeNetwork generates content for 15-eth-bridge.network.
+func GenerateInterfaceBridgeNetwork(iface, bridge string) (string, error) {
 	if iface == "" {
 		iface = "eth0"
 	}
 	if bridge == "" {
 		bridge = "br0"
 	}
-	data := EthBridgeNetworkData{
+	data := IntBridgeNetworkData{
 		Interface: iface,
 		Bridge:    bridge,
 	}
-	tmpl, err := template.New("eth_bridge").Parse(ethBridgeNetworkTemplate)
+	tmpl, err := template.New("eth_bridge").Parse(intBridgeNetworkTemplate)
 	if err != nil {
 		return "", err
 	}
@@ -485,13 +485,20 @@ func GenerateLANNetwork(cfg *config.LANConfig) (string, error) {
 	return buf.String(), nil
 }
 
-// ListNetworkInterfaces returns all non-loopback network interface names present on the system.
+// Helper function to test if an interface is a bridge.
+func isBridgeLinux(name string) bool {
+	bridgePath := filepath.Join("/sys/class/net", name, "bridge")
+	info, err := os.Stat(bridgePath)
+	return err == nil && info.IsDir()
+}
+
+// ListNetworkInterfaces returns all non-loopback/non-bridge network interface names present on the system.
 func ListNetworkInterfaces() []string {
 	ifaces, err := net.Interfaces()
 	var names []string
 	if err == nil {
 		for _, ifc := range ifaces {
-			if ifc.Flags&net.FlagLoopback != 0 {
+			if ifc.Flags&net.FlagLoopback != 0 || isBridgeLinux(ifc.Name) {
 				continue
 			}
 			names = append(names, ifc.Name)

@@ -389,8 +389,8 @@ func TestInterfaceSelectionAndSideBySideDiff(t *testing.T) {
 	if !strings.Contains(dashBody, "enp3s0") || !strings.Contains(dashBody, "wlan2") || !strings.Contains(dashBody, "br1") {
 		t.Errorf("expected staged interface values enp3s0, wlan2, br1 in diff modal, got:\n%s", dashBody)
 	}
-	if !strings.Contains(dashBody, "eth0") || !strings.Contains(dashBody, "wlan1") || !strings.Contains(dashBody, "br0") {
-		t.Errorf("expected active interface values eth0, wlan1, br0 in diff modal, got:\n%s", dashBody)
+	if !strings.Contains(dashBody, "wlan1") || !strings.Contains(dashBody, "wlan0") || !strings.Contains(dashBody, "br0") {
+		t.Errorf("expected active interface values wan1, wlan0, br0 in diff modal, got:\n%s", dashBody)
 	}
 
 	// 8. Commit and Push staged changes
