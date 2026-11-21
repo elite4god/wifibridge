@@ -209,4 +209,8 @@ wifibridge/
 5. Milestone 5 (VPN Modules): Implement native systemd-networkd WireGuard management and strongSwan (swanctl) IPSec Site-to-Site configuration with live tunnel status indicators.
 
 ## 10. Versioning.
-* Each run should increment the version by 0.0.1.
+* **Increment Directive:** Each time changes are made to the codebase, the version number must be incremented by 0.0.1 (patch increment).
+* **Code Tree Locations:** The version exists in the following locations within the code tree, and all of these versions must match:
+  1. `Makefile` (`VERSION ?= <version>`)
+  2. `packaging/DEBIAN/control` (`Version: <version>`)
+  3. `cmd/wifibridge/main.go` (`var Version = "<version>"`)
