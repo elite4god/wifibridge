@@ -9,7 +9,7 @@
             <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
                 <div>
                     <h4 class="fw-bold mb-1"><i class="bi bi-hdd-network me-2 text-primary"></i>Downstream LAN & DHCP Server</h4>
-                    <p class="text-muted small mb-0">Managed natively via systemd-networkd on bridge <code>{{.StagedConfig.LAN.Interface}}</code> with member <code>{{.StagedConfig.AP.Interface}}</code> (and <code>{{.StagedConfig.WAN.Interface}}</code> when not active uplink).</p>
+                    <p class="text-muted small mb-0">Managed natively via systemd-networkd on bridge <code>{{.StagedConfig.LAN.Interface}}</code> with member <code>{{.StagedConfig.AP.Interface}}</code> (and <code>{{.StagedConfig.ETH.Interface}}</code> when not active uplink).</p>
                 </div>
                 <span class="badge bg-primary p-2">Bridge: {{.StagedConfig.LAN.Interface}}</span>
             </div>
@@ -20,6 +20,40 @@
                     <input type="text" class="form-control" id="lan_interface" name="lan_interface" value="{{.StagedConfig.LAN.Interface}}" required>
                     <div class="form-text">Virtual bridge interface uniting downstream LAN members (default: <code>br0</code>).</div>
                 </div>
+
+                {{if eq .StagedConfig.WAN.Mode "wireless"}}
+                <div class="card bg-light border p-3 mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-ethernet text-primary me-2 fs-5"></i>
+                        <h6 class="fw-bold mb-0">Bridged Ethernet Interface</h6>
+                    </div>
+                    <p class="text-muted small mb-2">
+                        Because Upstream WAN is configured for wireless, the wired Ethernet interface is bridged into the downstream LAN (<code>{{.StagedConfig.LAN.Interface}}</code>) for wired client connectivity.
+                    </p>
+                    <div>
+                        <label for="eth_interface" class="form-label small fw-bold">Ethernet Interface</label>
+                        <select class="form-select" id="eth_interface" name="eth_interface">
+                            {{if and .StagedConfig.ETH.Interface (not (hasString .NetworkInterfaces .StagedConfig.ETH.Interface))}}
+                            <option value="{{.StagedConfig.ETH.Interface}}" selected>{{.StagedConfig.ETH.Interface}}</option>
+                            {{end}}
+                            {{range .NetworkInterfaces}}
+                            <option value="{{.}}" {{if eq . $.StagedConfig.ETH.Interface}}selected{{end}}>{{.}}</option>
+                            {{end}}
+                        </select>
+                        <div class="form-text">Physical Ethernet adapter to attach to the LAN bridge.</div>
+                    </div>
+                </div>
+                {{else}}
+                <div class="card bg-light border p-3 mb-3">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-info-circle text-muted me-2"></i>
+                        <h6 class="fw-bold mb-0 text-muted">Ethernet LAN Bridging</h6>
+                    </div>
+                    <p class="text-muted small mb-0">
+                        Ethernet bridging is currently inactive because Ethernet (<code>{{.StagedConfig.WAN.Interface}}</code>) is operating as the active Upstream WAN uplink. To bridge an Ethernet interface into your LAN, configure WAN to use a wireless connection in <a href="/wan">WAN Settings</a>.
+                    </p>
+                </div>
+                {{end}}
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">

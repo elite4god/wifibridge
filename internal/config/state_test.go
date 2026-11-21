@@ -148,3 +148,21 @@ func TestSanitizeInput(t *testing.T) {
 		t.Errorf("expected %q, got %q", expected, got)
 	}
 }
+
+func TestNormalizeConfigETHInterface(t *testing.T) {
+	cfg := &Config{
+		AP: APConfig{
+			Interface: "wlan0",
+		},
+		ETH: ETHConfig{
+			Interface: "",
+		},
+	}
+	normalizeConfig(cfg)
+	if cfg.ETH.Interface != "eth0" {
+		t.Errorf("expected ETH.Interface to default to eth0, got %q", cfg.ETH.Interface)
+	}
+	if cfg.AP.Interface != "wlan0" {
+		t.Errorf("expected AP.Interface to remain wlan0, got %q", cfg.AP.Interface)
+	}
+}

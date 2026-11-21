@@ -414,3 +414,87 @@ func TestInterfaceSelectionAndSideBySideDiff(t *testing.T) {
 		t.Errorf("expected live LAN Interface to be br1, got %s", liveCfg.LAN.Interface)
 	}
 }
+
+func TestLANInterfaceSelectionWirelessAndEthernet(t *testing.T) {
+	srv, stateDir, sysRoot := setupTestServer(t)
+	defer os.RemoveAll(stateDir)
+	defer os.RemoveAll(sysRoot)
+
+	_ = srv.authMgr.CreateAdmin("admin", "password123")
+	wAuth := httptest.NewRecorder()
+	srv.authMgr.CreateSession(wAuth)
+	sessionCookie := wAuth.Result().Cookies()[0]
+
+	// 1. Initial default: WAN Mode is wireless (per DefaultConfig: WAN.Mode = "wireless", Interface = "wlan1")
+	// GET /lan should show the Bridged Ethernet Interface section with eth_interface select
+	reqLANWireless := httptest.NewRequest("GET", "/lan", nil)
+	reqLANWireless.AddCookie(sessionCookie)
+	wLANWireless := httptest.NewRecorder()
+	srv.ServeHTTP(wLANWireless, reqLANWireless)
+
+	if wLANWireless.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /lan, got %d", wLANWireless.Code)
+	}
+	bodyWireless := wLANWireless.Body.String()
+	if !strings.Contains(bodyWireless, `name="eth_interface"`) {
+		t.Errorf("expected /lan to show eth_interface select when WAN is wireless, got:\n%s", bodyWireless)
+	}
+	if !strings.Contains(bodyWireless, "Bridged Ethernet Interface") {
+		t.Errorf("expected 'Bridged Ethernet Interface' section header in /lan when WAN is wireless")
+	}
+
+	// 2. Stage new Ethernet interface selection via POST /lan
+	formLAN := url.Values{
+		"lan_interface": {"br0"},
+		"eth_interface": {"eth0"},
+		"gateway_ip":    {"10.99.0.1"},
+		"subnet":        {"10.99.0.0/24"},
+		"pool_offset":   {"100"},
+		"pool_size":     {"150"},
+		"lease_time":    {"86400"},
+	}
+	reqLANPost := httptest.NewRequest("POST", "/lan", strings.NewReader(formLAN.Encode()))
+	reqLANPost.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	reqLANPost.AddCookie(sessionCookie)
+	wLANPost := httptest.NewRecorder()
+	srv.ServeHTTP(wLANPost, reqLANPost)
+
+	if wLANPost.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect after staging LAN, got %d", wLANPost.Code)
+	}
+	stagedCfg := srv.cfgMgr.GetStaged()
+	if stagedCfg.ETH.Interface != "eth0" {
+		t.Errorf("expected staged ETH Interface to be eth0, got %s", stagedCfg.ETH.Interface)
+	}
+
+	// 3. Switch WAN to ethernet mode
+	formWAN := url.Values{
+		"mode":          {"ethernet"},
+		"wan_interface": {"eth0"},
+	}
+	reqWANPost := httptest.NewRequest("POST", "/wan", strings.NewReader(formWAN.Encode()))
+	reqWANPost.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	reqWANPost.AddCookie(sessionCookie)
+	wWANPost := httptest.NewRecorder()
+	srv.ServeHTTP(wWANPost, reqWANPost)
+	if wWANPost.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303 redirect after staging WAN, got %d", wWANPost.Code)
+	}
+
+	// 4. GET /lan should now show the inactive Ethernet Bridging alert and NOT the select box
+	reqLANEthernet := httptest.NewRequest("GET", "/lan", nil)
+	reqLANEthernet.AddCookie(sessionCookie)
+	wLANEthernet := httptest.NewRecorder()
+	srv.ServeHTTP(wLANEthernet, reqLANEthernet)
+
+	if wLANEthernet.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /lan, got %d", wLANEthernet.Code)
+	}
+	bodyEthernet := wLANEthernet.Body.String()
+	if strings.Contains(bodyEthernet, `name="eth_interface"`) {
+		t.Errorf("expected /lan NOT to show eth_interface select when WAN is ethernet")
+	}
+	if !strings.Contains(bodyEthernet, "Ethernet bridging is currently inactive") {
+		t.Errorf("expected inactive Ethernet bridging notice in /lan when WAN is ethernet, got:\n%s", bodyEthernet)
+	}
+}

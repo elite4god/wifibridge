@@ -65,6 +65,14 @@ func (s *Server) initTemplates() error {
 			}
 			return template.JS(b), nil
 		},
+		"hasString": func(slice []string, val string) bool {
+			for _, s := range slice {
+				if s == val {
+					return true
+				}
+			}
+			return false
+		},
 	}
 
 	// Parse layout + page templates

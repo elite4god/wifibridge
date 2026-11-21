@@ -186,6 +186,7 @@ func (s *Server) handleLANGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLANPost(w http.ResponseWriter, r *http.Request) {
+	ethIface := config.SanitizeInput(r.FormValue("eth_interface"))
 	lanIface := config.SanitizeInput(r.FormValue("lan_interface"))
 	gatewayIP := config.SanitizeInput(r.FormValue("gateway_ip"))
 	subnet := config.SanitizeInput(r.FormValue("subnet"))
@@ -194,6 +195,9 @@ func (s *Server) handleLANPost(w http.ResponseWriter, r *http.Request) {
 	leaseTime, _ := strconv.Atoi(r.FormValue("lease_time"))
 
 	_ = s.cfgMgr.UpdateStaged(func(cfg *config.Config) {
+		if ethIface != "" {
+			cfg.ETH.Interface = ethIface
+		}
 		if lanIface != "" {
 			cfg.LAN.Interface = lanIface
 		}

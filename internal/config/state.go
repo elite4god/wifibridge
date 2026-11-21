@@ -54,7 +54,7 @@ type APConfig struct {
 }
 
 type ETHConfig struct {
-	Interface string `json:"interface,omitempty` // Physical interface name. eth0 end0
+	Interface string `json:"interface,omitempty"` // Physical interface name. eth0 end0
 }
 
 // WireGuardConfig represents systemd-networkd WireGuard VPN settings.
@@ -163,7 +163,7 @@ func normalizeConfig(cfg *Config) {
 		cfg.AP.Interface = "wlan0"
 	}
 	if cfg.ETH.Interface == "" {
-		cfg.AP.Interface = "eth0"
+		cfg.ETH.Interface = "eth0"
 	}
 }
 
