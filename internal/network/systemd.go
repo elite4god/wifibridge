@@ -35,6 +35,7 @@ Name={{.Interface}}
 
 [Network]
 Address={{.Address}}
+ConfigureWithoutCarrier=yes
 DHCPServer=yes
 IPv4Forwarding=yes
 IPMasquerade=ipv4
