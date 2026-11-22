@@ -50,11 +50,11 @@ DNS=10.99.0.1
 EOF
         fi
 
-        # Default Upstream WAN: eth0 (DHCP client + IPv4 NAT Masquerade)
+        # Default Upstream WAN: waln1 (DHCP client + IPv4 NAT Masquerade)
         if [ ! -f /etc/systemd/network/20-wan.network ]; then
             cat << 'EOF' > /etc/systemd/network/20-wan.network
 [Match]
-Name=eth0
+Name=wlan1
 
 [Network]
 DHCP=yes
@@ -73,7 +73,7 @@ EOF
         # Default hostapd configuration (Open AP on wlan1 bridged to br0, SSID WifiBridge)
         if [ ! -f /etc/hostapd/hostapd.conf ]; then
             cat << 'EOF' > /etc/hostapd/hostapd.conf
-interface=wlan1
+interface=wlan0
 bridge=br0
 driver=nl80211
 ssid=WifiBridge

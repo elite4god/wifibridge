@@ -9,6 +9,7 @@ import (
 )
 
 const hostapdTemplate = `interface={{.Interface}}
+country_code=US
 {{if .Bridge}}bridge={{.Bridge}}
 {{end}}driver=nl80211
 ssid={{.SSID}}
@@ -16,6 +17,13 @@ hw_mode={{.HWMode}}
 channel={{.Channel}}
 ieee80211n=1
 {{if eq .Security "wpa2-psk"}}
+ieee80211d=1
+ieee80211ac=1
+wmm_enabled=1
+ht_capab=[HT40+]
+vht_oper_chwidth=1
+vht_oper_centr_freq_seg0_idx=42
+auth_algs=1
 wpa=2
 wpa_key_mgmt=WPA-PSK
 rsn_pairwise=CCMP
@@ -85,7 +93,7 @@ func GenerateHostapdConf(cfg *config.APConfig) (string, error) {
 		Passphrase: passphrase,
 	}
 	if data.Interface == "" {
-		data.Interface = "wlan1"
+		data.Interface = "wlan0"
 	}
 
 	tmpl, err := template.New("hostapd").Parse(hostapdTemplate)

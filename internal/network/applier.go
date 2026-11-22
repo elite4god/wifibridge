@@ -258,6 +258,7 @@ func (a *Applier) ApplyFiles(cfg *config.Config) error {
 }
 
 func (a *Applier) reloadServices(cfg *config.Config) {
+	_ = a.sysMgr.ReloadNftables()
 	_ = a.sysMgr.ReloadNetworkd()
 	_ = a.sysMgr.RestartHostapd()
 	_ = a.sysMgr.RestartResolved()
@@ -267,7 +268,6 @@ func (a *Applier) reloadServices(cfg *config.Config) {
 	if cfg.IPSec.Enabled {
 		_ = a.sysMgr.ReloadSwanctl()
 	}
-	_ = a.sysMgr.ReloadNftables()
 }
 
 func (a *Applier) monitorWANFailsafe(newLive *config.Config, backup *config.Config) {
