@@ -1,10 +1,10 @@
 Package: wifibridge
-Version: 1.0.7
+Version: 1.0.8
 Section: net
 Priority: optional
 Architecture: amd64
 Maintainer: Jeremy Leonard <jeremyl@efgsystems.com>
-Depends: systemd, systemd-resolved, iwd, hostapd, strongswan-swanctl, nftables
+Depends: systemd, systemd-resolved, iwd, hostapd, strongswan, nftables
 Homepage: https://github.com/jeremyleonard/wifibridge
 Description: WifiBridge travel router and VPN gateway daemon
  A headless network appliance management daemon and Web UI designed for

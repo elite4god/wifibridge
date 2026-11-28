@@ -1,4 +1,4 @@
-VERSION ?= 1.0.7
+VERSION ?= 1.0.8
 PKG_NAME = wifibridge
 BIN_DIR = bin
 DIST_DIR = dist
@@ -6,7 +6,7 @@ ARCH ?= amd64
 
 .PHONY: all build build-arm64 test package package-arm64 clean
 
-all: build
+all: build build-arm64 package package-arm64
 
 build:
 	mkdir -p $(BIN_DIR)

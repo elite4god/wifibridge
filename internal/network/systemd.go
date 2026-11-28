@@ -38,7 +38,6 @@ Address={{.Address}}
 ConfigureWithoutCarrier=yes
 DHCPServer=yes
 IPv4Forwarding=yes
-IPMasquerade=ipv4
 
 [DHCPServer]
 PoolOffset={{.PoolOffset}}

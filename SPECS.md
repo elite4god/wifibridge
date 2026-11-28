@@ -24,7 +24,7 @@ To prevent interface name swapping across reboots, `systemd.link` files or drive
 
 
 ### Routing & NAT Model
-* **No Layer 2 WAN Bridging:** Traffic is routed (Layer 3) and NATed (`IPMasquerade=ipv4`) from the downstream LAN bridge (`br0`) to the active upstream WAN interface (`eth0` or `wlan0`).
+* **No Layer 2 WAN Bridging:** Traffic is routed (Layer 3) and NATed (outbound masquerading in `wifibridge.nft` with IPSec bypass) from the downstream LAN bridge (`br0`) to the active upstream WAN interface (`eth0` or `wlan0`).
 * **LAN Subnet:** `10.99.0.0/24` (Gateway/Appliance IP: `10.99.0.1` on `br0`).
 
 ---

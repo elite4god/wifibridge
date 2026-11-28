@@ -98,6 +98,9 @@ func TestSystemdConfigs(t *testing.T) {
 	if !strings.Contains(lanNet, "Name=br0") || !strings.Contains(lanNet, "Address=10.99.0.1/24") || !strings.Contains(lanNet, "DHCPServer=yes") {
 		t.Errorf("unexpected LAN network output:\n%s", lanNet)
 	}
+	if strings.Contains(lanNet, "IPMasquerade") {
+		t.Errorf("expected LAN network to not contain IPMasquerade, got:\n%s", lanNet)
+	}
 
 	wanEth := &config.WANConfig{Mode: "ethernet"}
 	wanNetEth, err := GenerateWANNetwork(wanEth)
@@ -567,10 +570,28 @@ func TestGenerateNftablesRules(t *testing.T) {
 	if !strings.Contains(eth, "table inet wifibridge") {
 		t.Errorf("expected wifibridge table, got:\n%s", eth)
 	}
+	if !strings.Contains(eth, "meta ipsec exists accept") {
+		t.Errorf("expected meta ipsec exists rule, got:\n%s", eth)
+	}
+	if !strings.Contains(eth, "udp dport { 500, 4500 } accept") {
+		t.Errorf("expected IKE/NAT-T rule, got:\n%s", eth)
+	}
+	if !strings.Contains(eth, "ip protocol esp accept") {
+		t.Errorf("expected ESP rule, got:\n%s", eth)
+	}
+	if !strings.Contains(eth, "tcp option maxseg size set rt mtu") {
+		t.Errorf("expected TCP MSS clamping rule, got:\n%s", eth)
+	}
+	if !strings.Contains(eth, `oif "eth0" masquerade`) {
+		t.Errorf("expected eth0 masquerade rule in postrouting, got:\n%s", eth)
+	}
 
 	wlan := GenerateNftablesRules("wlan0")
 	if !strings.Contains(wlan, `iif "wlan0"`) {
 		t.Errorf("expected wlan0 iif rule, got:\n%s", wlan)
+	}
+	if !strings.Contains(wlan, `oif "wlan0" masquerade`) {
+		t.Errorf("expected wlan0 masquerade rule in postrouting, got:\n%s", wlan)
 	}
 }
 
